@@ -21,7 +21,7 @@ public class TestMain {
         LogUtils.logI("hello world!!");
 
 
-        String xx = "ca 00 00 09 b4 00 00 09 95 01 03 01 0b 78 d6 94 00 00 00 0b 40 42 66 50 74 49 4b 57 36 4f 00 56 00 19 00 86 4e 8c 00 00 09 7c 58 c8 d4 f9 00 00 00 00 00 00 00 01 00 00";
+        String xx = "0b 7d 94 62 00 00 00 05 00 00 00 00 00 00 bd 6d 00 01 13 1c 58 c6 c6 b7 54 d1 6c a8";
 
         LogUtils.logI("length.=%d", xx.split(" ").length);
 

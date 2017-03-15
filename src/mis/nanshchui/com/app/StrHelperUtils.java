@@ -267,7 +267,7 @@ public class StrHelperUtils {
     
     
     public static void logVerbose(String username, String qq, String tag, String format, Object... msg) {
-        System.out.println(String.format("username=%s, qq=%s, tag=%s", username, qq, tag) + "," +  String.format(format, msg));
+//        System.out.println(String.format("username=%s, qq=%s, tag=%s", username, qq, tag) + "," +  String.format(format, msg));
         
     }
     

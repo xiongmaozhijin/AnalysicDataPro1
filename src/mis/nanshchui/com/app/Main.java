@@ -1,9 +1,13 @@
 package mis.nanshchui.com.app;
 
 import org.apache.commons.io.FileUtils;
+import sun.rmi.runtime.Log;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -66,10 +70,22 @@ public class Main {
         r = analysyContribution(dirFileName, strQQ, strCK);
 
         if (!r) {
-            LogUtils.logE("获取家族大厅信息失败---------------------");
+            LogUtils.logE("获取家族大厅信息失败V1---------------------");
         }
 
         LogUtils.logI("\r\n");
+
+        AppUtils.sleep(500);
+
+        r = analysyContribution2(dirFileName, strQQ, strCK);
+
+        if (!r) {
+            LogUtils.logE("获取家族大厅信息失败V2---------------------");
+        }
+
+        LogUtils.logI("\r\n");
+
+        AppUtils.sleep(500);
 
         r = getNoticeAndEvents(dirFileName, strQQ, strCK);
 
@@ -80,8 +96,8 @@ public class Main {
         AppUtils.readLine();
     }
 
-    static boolean analysyContribution(String dirFileName, String strQQ, String strCK) {
-        LogUtils.logI("获取家族大厅信息中---QQ=%s, skey=%s", strQQ, strCK);
+    private static boolean analysyContribution(String dirFileName, String strQQ, String strCK) {
+        LogUtils.logI("获取家族大厅信息中V1---QQ=%s, skey=%s", strQQ, strCK);
 
         String qqHex, ckHex;
         qqHex = StrHelperUtils.getQQHex(strQQ);
@@ -92,7 +108,13 @@ public class Main {
         byte[] execBytes = StrHelperUtils.hexStr2Bytes(cmdJzGx);
         byte[] validateCmd = SocketHelper.getValidateCmd(qqHex, ckHex);
 
+
         byte[] rBytes = SocketHelper.requestCmd(execBytes, validateCmd);
+
+        if (!SocketHelper.isValidated(rBytes)) {
+            LogUtils.logE(SocketHelper.getErrorMsg(rBytes));
+            return false;
+        }
 
 //        StrHelperUtils.debugBytes("家族贡献", rBytes);
 
@@ -171,13 +193,14 @@ public class Main {
 
 
         if (longValue >= 2000) {
-            LogUtils.logI("检测到成员数量大于2000，可能存在错误");
+            LogUtils.logI("检测到成员数量大于2000，存在错误");
+            return false;
         }
 
         curPos += 4;
 
         EntityFamilyInfo.FamilyMember memberItem;
-        for (int i=0, memberLen=(int)longValue, limit=10000; i<memberLen && limit > 0; i++, limit--) {
+        for (int i=0, memberLen=(int)longValue, limit=2000; i<memberLen && limit > 0; i++, limit--) {
             memberItem = new EntityFamilyInfo.FamilyMember();
             listMembers.add(memberItem);
 
@@ -213,19 +236,19 @@ public class Main {
 //        LogUtils.logI("familyInfo=%s", familyInfo);
 
         try {
-            FileUtils.writeLines(new File(dirFileName, "familyDesc.txt"), familyInfo.getFamilyDescc());
+            FileUtils.writeLines(new File(dirFileName, "familyDescV1.txt"), familyInfo.getFamilyDescc());
 
         } catch (IOException e) {
 //            e.printStackTrace();
-            LogUtils.logE("写入文件familyDesc出错");
+            LogUtils.logE("写入文件familyDescV1出错");
         }
 
         try {
-            FileUtils.writeLines(new File(dirFileName, "familyMemberDesc.txt"), familyInfo.getFamilyMemberDesc());
+            FileUtils.writeLines(new File(dirFileName, "familyMemberDescV1.txt"), familyInfo.getFamilyMemberDesc());
 
         } catch (IOException e) {
 //            e.printStackTrace();
-            LogUtils.logE("写入文件familyDesc出错");
+            LogUtils.logE("写入文件familyDescV1出错");
             return false;
         }
 
@@ -233,6 +256,239 @@ public class Main {
 
         return true;
     }
+
+
+    private static boolean analysyContribution2(String dirFileName, String strQQ, String strCK) {
+        LogUtils.logI("获取家族大厅信息中V2---QQ=%s, skey=%s", strQQ, strCK);
+
+        String qqHex, ckHex;
+        qqHex = StrHelperUtils.getQQHex(strQQ);
+        ckHex = StrHelperUtils.getCkHex(strCK);
+
+
+        String cmdJzGx = "CA 00 00 00 3A 00 00 00 1B 01 02 01 " + qqHex + " 00 00 00 0B " + ckHex + " 00 56 00 17 00 86 27 75 " + qqHex + " 00 00 00 00 00 04 00 00 00 01 00 00 " + qqHex;
+//        byte[] execBytes = StrHelperUtils.hexStr2Bytes(cmdJzGx);
+//        byte[] validateCmd = SocketHelper.getValidateCmd(qqHex, ckHex);
+
+        Object[] validateClientSocket = SocketHelper.getValidateClientSocket(qqHex, ckHex);
+
+        if (!SocketHelper.isVertifyCorrect(validateClientSocket)) {
+            LogUtils.logE(SocketHelper.getConnErrorMsg(validateClientSocket));
+            return false;
+        }
+
+//        byte[] rBytes = SocketHelper.requestCmd(execBytes, validateCmd);
+
+        Socket socket;
+        OutputStream os;
+        InputStream is;
+        byte[] rBytes;
+
+        socket = (Socket) validateClientSocket[0];
+        os = (OutputStream) validateClientSocket[1];
+        is = (InputStream) validateClientSocket[2];
+
+        rBytes = SocketHelper.writeCmd(os, is, cmdJzGx, null, 1);
+
+        if (rBytes == null) {
+            LogUtils.logI("\r\n接收数据失败！[275]");
+            return false;
+        }
+
+//        StrHelperUtils.debugBytes("家族贡献", rBytes);
+
+
+        EntityFamilyInfo familyInfo = new EntityFamilyInfo();
+        int intValue;
+        long longValue;
+        String strValue;
+        int len;
+        int curPos;
+        byte[] valueBytes;
+
+        //get family name
+        len = 4;
+        curPos = 0;
+        curPos += 64;
+        longValue =  StrHelperUtils.getLongValue(rBytes, curPos, len);
+        try {
+            valueBytes = getBytes(rBytes, curPos + 4, (int)longValue);
+
+        } catch (Exception e) {
+//            e.printStackTrace();
+            LogUtils.logE(e.getLocalizedMessage());
+            return false;
+        }
+
+        strValue = StrHelperUtils.convertToStrUtf8(valueBytes);
+        familyInfo.setFamilyName(strValue);
+
+        //family account
+        len = 4;
+        curPos += 4;
+        curPos += longValue;
+        longValue = StrHelperUtils.getLongValue(rBytes, curPos, len);
+        familyInfo.setFamilyAccount(longValue);
+
+        // family declaration
+        curPos += 4;
+        longValue = StrHelperUtils.getLongValue(rBytes, curPos, 4);
+
+        try {
+            valueBytes = getBytes(rBytes, curPos + 4, (int)longValue);
+
+        } catch (IOException e) {
+//            e.printStackTrace();
+            LogUtils.logE(e.getLocalizedMessage());
+            return false;
+        }
+
+        strValue = StrHelperUtils.convertToStrUtf8(valueBytes);
+        familyInfo.setFamilyDeclaration(strValue);
+
+        //family tips
+        curPos += 4;
+        curPos += longValue;
+        longValue = StrHelperUtils.getLongValue(rBytes, curPos, 4);
+        try {
+            valueBytes = getBytes(rBytes, curPos+4, (int)longValue);
+
+        } catch (IOException e) {
+//            e.printStackTrace();
+            LogUtils.logE(e.getLocalizedMessage());
+            return false;
+        }
+
+        strValue = StrHelperUtils.convertToStrUtf8(valueBytes);
+        familyInfo.setFamilyTips(strValue);
+
+        //family member
+        curPos += 4;
+        curPos += longValue;
+        curPos += 172;
+        longValue = StrHelperUtils.getLongValue(rBytes, curPos, 4);
+
+        List<EntityFamilyInfo.FamilyMember> listMembers = new ArrayList<>();
+        familyInfo.setmListMembers(listMembers);
+
+
+        if (longValue >= 2000) {
+            LogUtils.logE("检测到成员数量大于2000，存在错误");
+            return false;
+        }
+
+        //检测是否要继续接包
+        int memberCnt = (int)longValue;
+        int restBytes = rBytes.length - (curPos + 4 - 1);
+        int needBytes = 28 * memberCnt;
+        List<byte[]> restBytesList = new ArrayList<>();
+
+        for (int i=0; i<5; i++) {
+            if (needBytes > restBytes) {
+                //continue accpet data
+                byte[] newBytes = SocketHelper.readBytesSaft(is, null, 1);
+                if (newBytes == null) {
+                    LogUtils.logE("接收数据失败![371]");
+                    return false;
+                }
+
+                restBytes += newBytes.length;
+                restBytesList.add(newBytes);
+
+            } else {
+                break;
+            }
+        }
+
+
+        int rTotalSize = 0;
+        int resultSize = 0;
+
+        rTotalSize += rBytes.length;
+        for (byte[] bItem : restBytesList) {
+            rTotalSize += bItem.length;
+        }
+
+        byte[] newResultBytes = new byte[rTotalSize];
+
+        try {
+            System.arraycopy(rBytes, 0, newResultBytes, resultSize, rBytes.length);
+            resultSize = rBytes.length;
+
+            for (byte[] bItem : restBytesList) {
+                System.arraycopy(bItem, 0, newResultBytes, resultSize, bItem.length);
+                resultSize += bItem.length;
+            }
+
+        } catch (Exception e) {
+            LogUtils.logE(e.getLocalizedMessage());
+            return false;
+        }
+
+        SocketHelper.cloesScoke(socket, os, is);
+
+        rBytes = newResultBytes;
+
+        curPos += 4;
+
+        EntityFamilyInfo.FamilyMember memberItem;
+        for (int i=0, memberLen=(int)longValue, limit=2000; i<memberLen && limit > 0; i++, limit--) {
+            memberItem = new EntityFamilyInfo.FamilyMember();
+            listMembers.add(memberItem);
+
+            longValue = StrHelperUtils.getLongValue(rBytes, curPos, 4);
+            memberItem.strQQ = longValue + "";
+
+            curPos += 4;
+            longValue = StrHelperUtils.getLongValue(rBytes, curPos, 4);
+            memberItem.rank = longValue;
+
+            curPos += 4;
+            //...
+            curPos += 4;
+            longValue = StrHelperUtils.getLongValue(rBytes, curPos, 4);
+            memberItem.contributionValue = longValue;
+
+            curPos += 4;
+            longValue = StrHelperUtils.getLongValue(rBytes, curPos, 4);
+            memberItem.fightingCapability = longValue;
+
+            curPos += 4;
+            longValue = StrHelperUtils.getLongValue(rBytes, curPos, 4);
+            memberItem.timeStamp1 = longValue;
+
+            curPos += 4;
+            longValue = StrHelperUtils.getLongValue(rBytes, curPos, 4);
+            memberItem.timeStamp2 = longValue;
+
+            curPos += 4;
+        }
+
+
+//        LogUtils.logI("familyInfo=%s", familyInfo);
+
+        try {
+            FileUtils.writeLines(new File(dirFileName, "familyDescV2.txt"), familyInfo.getFamilyDescc());
+
+        } catch (IOException e) {
+//            e.printStackTrace();
+            LogUtils.logE("写入文件familyDescV2.txt出错");
+        }
+
+        try {
+            FileUtils.writeLines(new File(dirFileName, "familyMemberDescV2.txt"), familyInfo.getFamilyMemberDesc());
+
+        } catch (IOException e) {
+//            e.printStackTrace();
+            LogUtils.logE("写入文件familyDescV2.txt出错");
+            return false;
+        }
+
+        LogUtils.logI("抓取家族大厅信息保存完毕");
+
+        return true;
+    }
+
 
 
 

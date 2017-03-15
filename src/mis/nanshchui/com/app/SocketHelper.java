@@ -154,6 +154,25 @@ public class SocketHelper {
         return readBytes;
     }
 
+
+
+
+    public static boolean isValidated(byte[] resultBytes) {
+        return (resultBytes !=null && resultBytes[0] == (byte)0xCA);
+    }
+
+    public static String getErrorMsg(byte[] resultBytes) {
+        if (resultBytes == null || resultBytes.length < 2) {
+            return "网络连接出错，未知";
+        } else if (resultBytes[0] == ERROR_FLAG && (resultBytes[1]==(byte)ERROR_LOGIN)) {
+            return "登录失效，请重试或重新登录";
+        } else {
+            return "网络连接出错，未知";
+        }
+    }
+
+
+
     /**
      * 请求命令
      *
@@ -461,7 +480,7 @@ public class SocketHelper {
     }
 
     @Nullable
-    private static byte[] readBytesSaft(@NotNull InputStream is,
+    public static byte[] readBytesSaft(@NotNull InputStream is,
                                         @Nullable byte[] terminalBytes, int tryCnt) {
         byte[] readBytes = null;
         byte[] tempBytes;
@@ -472,7 +491,7 @@ public class SocketHelper {
 
         for (int i = 0; i < tryCnt; i++) {
             try {
-                tempBytes = new byte[1024 * 4];
+                tempBytes = new byte[1024 * 8];
 
                 readCnt = is.read(tempBytes);
 

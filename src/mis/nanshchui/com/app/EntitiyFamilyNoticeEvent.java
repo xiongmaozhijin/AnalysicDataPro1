@@ -27,8 +27,16 @@ public class EntitiyFamilyNoticeEvent {
         if (listNoticeEvents != null) {
             StringBuilder sBuilder;
             SimpleDateFormat sdf = new SimpleDateFormat("(yyyy-MM-dd HH:mm:ss)");
+
             for (FamilyEvent item : listNoticeEvents) {
                 sBuilder = new StringBuilder("");
+
+                if (item.otherInfos.size() >= 1) {
+                    long timeStamp = item.otherInfos.get(item.otherInfos.size()-1);
+                    sBuilder.append(timeStamp);
+                    sBuilder.append(sdf.format(new Date(timeStamp * 1000)));
+                    sBuilder.append(";");
+                }
 
                 sBuilder.append(item.strQQ);
                 sBuilder.append(";");
@@ -37,13 +45,10 @@ public class EntitiyFamilyNoticeEvent {
                 sBuilder.append(item.infoType);
 
                 Long longValue;
-                for (int i=0, len=item.otherInfos.size(); i<len; i++) {
+                for (int i=0, len=item.otherInfos.size() - 1; i<len; i++) {
                     longValue = item.otherInfos.get(i);
                     sBuilder.append(";");
                     sBuilder.append(longValue);
-                    if (i==len-1) {
-                        sBuilder.append(sdf.format(new Date(longValue*1000)));
-                    }
                 }
 
                 lines.add(sBuilder.toString());
