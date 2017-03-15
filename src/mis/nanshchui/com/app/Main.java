@@ -493,7 +493,7 @@ public class Main {
 
 
     private static boolean getNoticeAndEvents(String dirFile, String strQQ, String strCk) {
-        LogUtils.logI("获取家族公告信息中---QQ=%s, skey=%s", strQQ, strCk);
+        LogUtils.logI("获取家族公告信息中V1---QQ=%s, skey=%s", strQQ, strCk);
 
         String qqHex = StrHelperUtils.getQQHex(strQQ);
         String ckHex = StrHelperUtils.getCkHex(strCk);
@@ -523,7 +523,7 @@ public class Main {
 
         List<EntitiyFamilyNoticeEvent.FamilyEvent> listNoticeEvents  = new ArrayList<>();
         EntitiyFamilyNoticeEvent.FamilyEvent eventItem;
-        for (int i=0, eventCnt=(int)longValue, limit=10000; i<eventCnt && limit>0; i++, limit--) {
+        for (int i=0, eventCnt=(int)longValue, limit=2000; i<eventCnt && limit>0; i++, limit--) {
             eventItem = new EntitiyFamilyNoticeEvent.FamilyEvent();
             listNoticeEvents.add(eventItem);
 
@@ -557,19 +557,17 @@ public class Main {
         familyNoticeEvent.setListNoticeEvents(listNoticeEvents);
 
         try {
-            FileUtils.writeLines(new File(dirFile, "familyEvents.txt"), familyNoticeEvent.getEventsDesc());
+            FileUtils.writeLines(new File(dirFile, "familyEventsV1.txt"), familyNoticeEvent.getEventsDesc());
 
         } catch (IOException e) {
 //            e.printStackTrace();
-            LogUtils.logE("写入文件familyEvents.txt错误");
+            LogUtils.logE("写入文件familyEventsV1.txt错误");
             return false;
         }
 
         LogUtils.logI("抓取家族公告信息保存完毕");
         return true;
     }
-
-
 
 
 }
