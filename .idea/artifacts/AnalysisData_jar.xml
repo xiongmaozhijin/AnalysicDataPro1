@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="AnalysisData:jar">
+    <output-path>$PROJECT_DIR$</output-path>
+    <root id="archive" name="AnalysisData.jar">
+      <element id="module-output" name="AnalysisData" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/annotations-12.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/commons-io-2.5.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
